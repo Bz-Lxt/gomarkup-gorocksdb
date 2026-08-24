@@ -18,6 +18,7 @@ type Bench struct {
 	mu      sync.Mutex
 	running atomic.Bool
 	stop    chan struct{}
+	wg      sync.WaitGroup
 	ops     atomic.Int64
 	errs    atomic.Int64
 	started time.Time
@@ -72,12 +73,14 @@ func (b *Bench) Start(workers, qps, valSize int) {
 	stop := b.stop
 	b.mu.Unlock()
 
+	b.wg.Add(workers)
 	for i := 0; i < workers; i++ {
 		go b.worker(i, qps, valSize, stop)
 	}
 }
 
 func (b *Bench) worker(id, qps, valSize int, stop <-chan struct{}) {
+	defer b.wg.Done()
 	val := make([]byte, valSize)
 	for i := range val {
 		val[i] = byte('a' + i%26)
@@ -118,12 +121,24 @@ func (b *Bench) worker(id, qps, valSize int, stop <-chan struct{}) {
 
 func (b *Bench) Stop() {
 	b.mu.Lock()
-	if b.stop != nil && b.running.Load() {
-		b.stop <- struct{}{}
+	if b.stop != nil {
+		// Closing the channel wakes every worker simultaneously.
+		// A single send would only notify one worker, leaving the rest
+		// running indefinitely and leaking writes into the business DB.
+		close(b.stop)
 		b.stop = nil
+		b.running.Store(false)
+		b.mu.Unlock()
+		// Block until every worker has actually exited, so no Put
+		// can land after this returns. This also makes repeated
+		// start/stop cycles safe: Start() calls Stop() and must not
+		// return before the previous round's workers are gone.
+		b.wg.Wait()
+		return
 	}
 	b.running.Store(false)
 	b.mu.Unlock()
+	b.wg.Wait()
 }
 
 func (b *Bench) Stats() map[string]any {
