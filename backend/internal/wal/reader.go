@@ -13,12 +13,12 @@ import (
 var ErrCorruptTail = errors.New("wal: corrupt tail truncated")
 
 type Reader struct {
-	f      *os.File
-	block  []byte
-	off    int
-	n      int
-	eof    bool
-	trunc  bool
+	f     *os.File
+	block []byte
+	off   int
+	n     int
+	eof   bool
+	trunc bool
 }
 
 func OpenReader(path string) (*Reader, error) {
@@ -159,9 +159,14 @@ func Replay(path string, fn func([]byte) error) (truncated bool, err error) {
 			return r.Truncated(), e
 		}
 		if err := fn(rec); err != nil {
-			if errors.Is(err, encoding.ErrShortRecord) && r.eof {
-				return true, nil
-			}
+			// A logical batch-level error (e.g. count/payload mismatch reported
+			// by DecodeBatch) is real corruption: the physical record CRC was
+			// valid, so the bytes on disk are intact, yet the batch does not
+			// describe a parseable sequence of entries. Unlike a physically
+			// truncated tail (handled above via ErrCorruptTail), this can never
+			// be a benign torn write and must be surfaced to the caller so that
+			// Open fails and the node stays down for repair. Half-replaying
+			// such a WAL would silently drop committed writes.
 			return r.Truncated(), err
 		}
 	}
