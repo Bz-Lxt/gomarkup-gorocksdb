@@ -1,0 +1,44 @@
+# Go
+backend/bin/
+backend/vendor/
+*.exe
+*.test
+*.out
+coverage.out
+coverage.html
+
+# Node
+frontend-user/node_modules/
+frontend-user/dist/
+frontend-user/.vite/
+
+# Data / runtime
+data/
+*.sst
+*.log
+MANIFEST-*
+CURRENT
+LOCK
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Test artifacts
+tests/.pytest_cache/
+tests/test-results/
+tests/playwright-report/
+tests/__pycache__/
+.pytest_cache/
+
+# Env
+.env
+.env.local
+/docs/
+/.alkaid-sop
+/CLAUDE.md
+/AGENTS.md
+/.cursorrules
+/.github/
