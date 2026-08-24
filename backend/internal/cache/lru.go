@@ -76,6 +76,8 @@ func (c *LRU) Put(key string, val []byte) {
 }
 
 func (c *LRU) Stats() (hits, misses, inserts, used, cap int64) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return c.hits.Load(), c.misses.Load(), c.inserts.Load(), c.used, c.cap
 }
 
