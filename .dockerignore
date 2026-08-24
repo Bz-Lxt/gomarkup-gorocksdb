@@ -1,0 +1,13 @@
+.git
+.alkaid-sop
+docs
+data
+frontend-user/node_modules
+frontend-user/dist
+backend/vendor
+**/.DS_Store
+**/coverage.out
+**/*.test
+tests/playwright-report
+tests/test-results
+**/.pytest_cache
