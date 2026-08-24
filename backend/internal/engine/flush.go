@@ -44,12 +44,13 @@ func (db *DB) Flush() error {
 		old := db.mem
 		old.MarkImmutable()
 		db.imm = append(db.imm, old)
+		oldLog := db.log
 		if err := db.newMemLocked(); err != nil {
 			db.mu.Unlock()
 			return err
 		}
-		if db.log != nil {
-			_ = db.log.Unref()
+		if oldLog != nil {
+			_ = oldLog.Unref()
 		}
 		db.bus.Publish("memtable.rotate", map[string]any{
 			"old_id": old.ID(), "forced": true, "bytes": old.ApproximateMemory(),
