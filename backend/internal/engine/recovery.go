@@ -50,6 +50,7 @@ func (db *DB) recover() error {
 			return nil
 		})
 		if err != nil {
+			logger.L().Error("wal replay aborted: logical corruption detected, refusing to start in half-replayed state", "file", path, "err", err)
 			return err
 		}
 		if truncated {
